@@ -9,11 +9,108 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import fs from 'fs';
+import process from 'process';
+import { exec } from 'child_process';
+import { IsEmptyObj } from '../../node_modules/@reduxjs/toolkit/src/tsHelpers';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+
+function setConfig(key: string, value: string) {
+  const configJsonPath = path.join(app.getPath('userData'), 'config.json');
+
+  let oldConfig = {};
+  if (fs.existsSync(configJsonPath)) {
+    oldConfig = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
+  }
+
+  fs.writeFile(
+    path.join(app.getPath('userData'), 'config.json'),
+    JSON.stringify({
+      ...oldConfig,
+      [key]: value,
+    }),
+    (err: any) => {
+      if (err) {
+        console.log(err);
+      }
+    }
+  );
+
+  console.log('configJsonPath', configJsonPath);
+  console.log('setConfig', key, value);
+}
+
+function getConfig(key: string) {
+  const configJsonPath = path.join(app.getPath('userData'), 'config.json');
+
+  let oldConfig = {} as {
+    [key: string]: string;
+  };
+  if (fs.existsSync(configJsonPath)) {
+    oldConfig = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
+  }
+
+  return oldConfig[key];
+}
+
+const packageJsonPath = process.argv[1];
+
+const basename = path.basename(packageJsonPath);
+
+const packageJsonInfo = {
+  name: 'welcome',
+  version: '',
+  scripts: [] as string[],
+  withoutParams: true,
+};
+
+if (basename.endsWith('.json') && basename !== 'package.json') {
+  const executor = getConfig('default-json-opener');
+  if (executor) {
+    exec(
+      `${executor} ${packageJsonPath}`,
+      {
+        cwd: path.dirname(packageJsonPath),
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          console.log(err);
+        }
+        console.log(stdout);
+        console.log(stderr);
+      }
+    );
+
+    app.quit();
+  } else {
+    packageJsonInfo.name = 'need config default-json-opener';
+  }
+}
+
+if (basename === 'package.json') {
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const { name, version, scripts } = packageJson;
+  packageJsonInfo.name = name;
+  packageJsonInfo.version = version;
+
+  if (!name) {
+    packageJsonInfo.name = '/';
+  }
+  if (!version) {
+    packageJsonInfo.version = '0.0.0';
+  }
+  if (!scripts) {
+    packageJsonInfo.scripts = [];
+  } else {
+    packageJsonInfo.scripts = Object.keys(scripts);
+  }
+
+  packageJsonInfo.withoutParams = false;
+}
 
 class AppUpdater {
   constructor() {
@@ -25,10 +122,40 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
+ipcMain.on('package-json-info', async (event, arg) => {
+  event.reply('package-json-info', packageJsonInfo);
+});
+
+ipcMain.on('setting', async (event, [arg]) => {
+  // console.log(arg);
+  if (arg === 'default-json-opener' || arg === 'default-cmd-executor') {
+    const { filePaths } = await dialog.showOpenDialog({
+      properties: ['openFile'],
+    });
+
+    if (filePaths.length > 0) {
+      setConfig(arg, filePaths[0]);
+    }
+  }
+});
+
+ipcMain.on('execute', async (event, [arg]) => {
+  console.log(arg);
+
+  exec(
+    `cmd /c ${arg}`,
+    {
+      cwd: path.dirname(packageJsonPath),
+    },
+    (err, stdout, stderr) => {
+      if (err) {
+        console.log(err);
+        return;
+      }
+
+      console.log(stdout);
+    }
+  );
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -71,8 +198,9 @@ const createWindow = async () => {
 
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: 800,
+    height: 600,
+    // frame: false,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       sandbox: false,
