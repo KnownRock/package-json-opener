@@ -2,12 +2,23 @@ import { Box, Button, IconButton, Typography } from '@mui/material';
 import PjoTextButton from 'renderer/components/PjoTextButton';
 import LeftIcon from '@mui/icons-material/ArrowBackIosNew';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from 'renderer/store';
+import TextField from '@mui/material/TextField';
+import { useState } from 'react';
 import { setting } from '../reducers/appSlice';
 
 export default function Setting() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const jsonOpener = useSelector((state: RootState) => state.app.jsonOpener);
+  const cmdExecuteTemplate = useSelector(
+    (state: RootState) => state.app.cmdExecuteTemplate
+  );
+
+  const [cmdExecuteTemplateState, setCmdExecuteTemplateState] =
+    useState(cmdExecuteTemplate);
 
   return (
     <Box
@@ -42,20 +53,51 @@ export default function Setting() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          width: '100%',
         }}
       >
-        <PjoTextButton
-          text="default json opener"
+        <Typography variant="h5">JSON opener</Typography>
+        <TextField
+          sx={{
+            width: '80%',
+          }}
+          disabled
+          value={jsonOpener}
+        />
+        <Button
           onClick={() => {
-            dispatch(setting('default-json-opener'));
+            dispatch(
+              setting({
+                type: 'json-opener',
+                value: '',
+              })
+            );
+          }}
+        >
+          change
+        </Button>
+        <Typography variant="h5">Cmd Execute Template</Typography>
+        <TextField
+          sx={{
+            width: '80%',
+          }}
+          value={cmdExecuteTemplateState}
+          onChange={(e) => {
+            setCmdExecuteTemplateState(e.target.value);
           }}
         />
-        <PjoTextButton
-          text="default cmd executor"
+        <Button
           onClick={() => {
-            dispatch(setting('default-cmd-executor'));
+            dispatch(
+              setting({
+                type: 'cmd-execute-template',
+                value: cmdExecuteTemplateState,
+              })
+            );
           }}
-        />
+        >
+          change
+        </Button>
       </Box>
     </Box>
   );

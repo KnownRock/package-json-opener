@@ -8,14 +8,13 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import path from 'path';
+import path from 'node:path';
 import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import process from 'process';
 import { exec } from 'child_process';
-import { IsEmptyObj } from '../../node_modules/@reduxjs/toolkit/src/tsHelpers';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -27,17 +26,12 @@ function setConfig(key: string, value: string) {
     oldConfig = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
   }
 
-  fs.writeFile(
+  fs.writeFileSync(
     path.join(app.getPath('userData'), 'config.json'),
     JSON.stringify({
       ...oldConfig,
       [key]: value,
-    }),
-    (err: any) => {
-      if (err) {
-        console.log(err);
-      }
-    }
+    })
   );
 
   console.log('configJsonPath', configJsonPath);
@@ -50,14 +44,18 @@ function getConfig(key: string) {
   let oldConfig = {} as {
     [key: string]: string;
   };
+  console.log('----------------------------------------');
+  console.log(fs.readFileSync(configJsonPath).toString());
+  console.log('----------------------------------------');
+
   if (fs.existsSync(configJsonPath)) {
-    oldConfig = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
+    oldConfig = JSON.parse(fs.readFileSync(configJsonPath).toString());
   }
 
   return oldConfig[key];
 }
 
-const packageJsonPath = process.argv[1];
+const packageJsonPath = process.argv[1] || '';
 
 const basename = path.basename(packageJsonPath);
 
@@ -69,10 +67,10 @@ const packageJsonInfo = {
 };
 
 if (basename.endsWith('.json') && basename !== 'package.json') {
-  const executor = getConfig('default-json-opener');
+  const executor = getConfig('json-opener');
   if (executor) {
     exec(
-      `${executor} ${packageJsonPath}`,
+      `start ${executor} ${packageJsonPath}`,
       {
         cwd: path.dirname(packageJsonPath),
       },
@@ -87,7 +85,7 @@ if (basename.endsWith('.json') && basename !== 'package.json') {
 
     app.quit();
   } else {
-    packageJsonInfo.name = 'need config default-json-opener';
+    packageJsonInfo.name = 'need config json-opener';
   }
 }
 
@@ -110,6 +108,8 @@ if (basename === 'package.json') {
   }
 
   packageJsonInfo.withoutParams = false;
+
+  console.log('packageJsonInfo', packageJsonInfo);
 }
 
 class AppUpdater {
@@ -126,9 +126,17 @@ ipcMain.on('package-json-info', async (event, arg) => {
   event.reply('package-json-info', packageJsonInfo);
 });
 
-ipcMain.on('setting', async (event, [arg]) => {
-  // console.log(arg);
-  if (arg === 'default-json-opener' || arg === 'default-cmd-executor') {
+ipcMain.on('settings', async (event, arg) => {
+  console.log('settings', arg);
+  event.reply('settings', {
+    'json-opener': getConfig('json-opener') || '',
+    'cmd-execute-template': getConfig('cmd-execute-template') || '',
+  });
+});
+
+ipcMain.on('set-setting', async (event, [{ type: arg, value }]) => {
+  console.log(arg);
+  if (arg === 'json-opener') {
     const { filePaths } = await dialog.showOpenDialog({
       properties: ['openFile'],
     });
@@ -137,13 +145,26 @@ ipcMain.on('setting', async (event, [arg]) => {
       setConfig(arg, filePaths[0]);
     }
   }
+  if (arg === 'cmd-execute-template') {
+    setConfig(arg, value);
+  }
+
+  event.reply('settings', {
+    'json-opener': getConfig('json-opener') || '',
+    'cmd-execute-template': getConfig('cmd-execute-template') || '',
+  });
 });
 
 ipcMain.on('execute', async (event, [arg]) => {
   console.log(arg);
 
+  let cmdExecutor = getConfig('cmd-execute-template');
+  if (!cmdExecutor) {
+    cmdExecutor = 'start cmd.exe @cmd /k {pjocmd}';
+  }
+
   exec(
-    `cmd /c ${arg}`,
+    cmdExecutor.replace('{pjocmd}', arg),
     {
       cwd: path.dirname(packageJsonPath),
     },
@@ -198,9 +219,9 @@ const createWindow = async () => {
 
   mainWindow = new BrowserWindow({
     show: false,
-    width: 800,
+    width: 400,
     height: 600,
-    // frame: false,
+    frame: !!isDebug,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       sandbox: false,

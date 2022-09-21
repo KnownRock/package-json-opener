@@ -15,6 +15,8 @@ export default function Home() {
   const withoutParams = useSelector(
     (state: RootState) => state.app.withoutParams
   );
+  console.log(withoutParams);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,10 +24,23 @@ export default function Home() {
     (props: { script: string }) => {
       const { script } = props;
       return (
-        <PjoTextButton text={script} onClick={() => dispatch(npm(script))} />
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <PjoTextButton
+            fontSize={30 / scripts.length}
+            text={script}
+            onClick={() => dispatch(npm(script))}
+          />
+        </Box>
       );
     },
-    [dispatch]
+    [dispatch, scripts]
   );
 
   const Close = useCallback(() => {
@@ -92,8 +107,22 @@ export default function Home() {
     >
       <ToolBar />
       <Box>
-        <Typography variant="h2">{name}</Typography>
-        <Typography variant="h4">{version}</Typography>
+        <Typography
+          variant="h2"
+          sx={{
+            fontSize: `${60 / scripts.length}vh`,
+          }}
+        >
+          {name}
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: `${30 / scripts.length}vh`,
+          }}
+          variant="h4"
+        >
+          {version}
+        </Typography>
       </Box>
       <Box
         sx={{
@@ -104,7 +133,7 @@ export default function Home() {
         }}
       >
         {scripts.map((script) => (
-          <MenuButton script={`run ${script}`} key={script} />
+          <MenuButton script={`npm run ${script}`} key={script} />
         ))}
 
         <Box
@@ -115,7 +144,7 @@ export default function Home() {
             justifyContent: 'center',
           }}
         >
-          {!withoutParams && <MenuButton script="install" />}
+          {!withoutParams && <MenuButton script="npm install" />}
         </Box>
       </Box>
     </Box>

@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'execute' | 'setting' | 'message' | 'package-json-info';
+export type Channels =
+  | 'execute'
+  | 'set-setting'
+  | 'settings'
+  | 'message'
+  | 'package-json-info';
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {

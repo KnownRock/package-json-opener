@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import App from './App';
 import { store } from './store';
-import { init } from './reducers/appSlice';
+import { init, initSettings } from './reducers/appSlice';
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const container = document.getElementById('root')!;
@@ -17,7 +17,7 @@ root.render(
 );
 
 // calling IPC exposed from preload script
-window.electron.ipcRenderer.once('package-json-info', (arg) => {
+window.electron.ipcRenderer.on('package-json-info', (arg) => {
   store.dispatch(
     init(
       arg as {
@@ -28,8 +28,21 @@ window.electron.ipcRenderer.once('package-json-info', (arg) => {
       }
     )
   );
-  // dis  init(arg as string[]);
 });
+
+window.electron.ipcRenderer.on('settings', (arg) => {
+  store.dispatch(
+    initSettings(
+      arg as {
+        'json-opener': string;
+        'cmd-execute-template': string;
+      }
+    )
+  );
+});
+
+window.electron.ipcRenderer.sendMessage('settings', ['get']);
+
 window.electron.ipcRenderer.sendMessage('package-json-info', ['get']);
 
 window.electron.ipcRenderer.on('message', (arg) => {
