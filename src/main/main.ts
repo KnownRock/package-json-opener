@@ -68,9 +68,13 @@ const packageJsonInfo = {
 
 if (basename.endsWith('.json') && basename !== 'package.json') {
   const executor = getConfig('json-opener');
+
   if (executor) {
+    // const cmd = `start cmd.exe @cmd /k ""${executor}" "${packageJsonPath}""`;
+    const cmd = `"${executor}" "${packageJsonPath}"`;
+    console.log(cmd);
     exec(
-      `start ${executor} ${packageJsonPath}`,
+      cmd,
       {
         cwd: path.dirname(packageJsonPath),
       },
