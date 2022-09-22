@@ -1,0 +1,3 @@
+
+hold exec process, restart when reclick button text
+cmd parameter

@@ -1,6 +1,6 @@
 {
   "name": "package-json-opener",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "An npm package.json opener",
   "keywords": [
     "electron",

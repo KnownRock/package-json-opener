@@ -33,7 +33,9 @@ export default function Home() {
           }}
         >
           <PjoTextButton
-            fontSize={25 / scripts.length}
+            fontSize={`min(${50 / scripts.length}vh, ${80 / script.length}vw)`}
+            height={`${60 / scripts.length}vh`}
+            margin={`${4 / scripts.length}vh`}
             text={script}
             onClick={() => dispatch(npm(script))}
           />
@@ -110,14 +112,14 @@ export default function Home() {
         <Typography
           variant="h2"
           sx={{
-            fontSize: `${30 / scripts.length}vh`,
+            fontSize: `min(15vh, ${150 / name.length}vw)`,
           }}
         >
           {name}
         </Typography>
         <Typography
           sx={{
-            fontSize: `${20 / scripts.length}vh`,
+            fontSize: `min(15vh, ${100 / name.length}vw)`,
           }}
           variant="h4"
         >

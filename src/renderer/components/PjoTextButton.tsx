@@ -5,23 +5,32 @@ export default function PjoTextButton({
   text,
   onClick,
   fontSize = undefined,
+  height = undefined,
+  margin = undefined,
 }: {
   text: string;
-  fontSize?: number | undefined;
+  fontSize?: string | undefined;
+  margin?: string | undefined;
+  height?: string | undefined;
   onClick: () => void;
 }) {
   return (
     <Button
       sx={{
-        margin: `${fontSize ? fontSize / 4 : 0}vh 0`,
+        // margin: `${fontSize ? fontSize / 4 : 0}vh 0`,
         width: '80%',
+        display: 'flex',
+        alignItems: 'center',
+
+        margin,
+        height,
       }}
       variant="outlined"
       onClick={onClick}
     >
       <Typography
         sx={{
-          fontSize: `${fontSize}vh`,
+          fontSize,
         }}
         variant="h3"
       >
